@@ -4,7 +4,6 @@ from Bio import pairwise2
 import pandas as pd
 import numpy as np
 
-
 sys.setrecursionlimit(10000000)
 
 """
@@ -16,9 +15,11 @@ marburg_genes = []
 ebolavirus_genomes = []
 all_genes = {}
 edit_distance_matrices = [[[0 for i in range(5)] for j in range(5)] for k in range(7)]
+gene_names = ['GP', 'L', 'VP24', 'VP30', 'VP35', 'VP40', 'NP']
+
 
 def align_and_find_genes(genome):
-    f = open('./Output/' + genome.name + '.csv', "w")
+    f = open('./Output/found_genes/' + genome.name + '.csv', "w")
     start = 0
     for gene in marburg_genes:
         len_gene = len(gene.seq)
@@ -53,23 +54,10 @@ def read_data():
 def start_aligning():
     for genome in ebolavirus_genomes:
         align_and_find_genes(genome)
-        break
 
 
-if __name__ == '__main__':
-    read_data()
-    for gene in marburg_genes:
-        i = 0
-        genes = []
-        for genome in ebolavirus_genomes:
-            indices = pd.read_csv("./Output/" + genome.name + ".csv", header=None)
-            begin_idx = int(indices.loc[i, 1])
-            end_idx = int(indices.loc[i, 2])
-            new_record = SeqIO.SeqRecord(genome.seq[begin_idx: end_idx])
-            new_record.name = genome.name
-            genes.append(new_record)
-            i += 1
-        all_genes[gene.name] = genes
+def global_align():
+    global edit_distance_matrices
     gene_id = 0
     for gene in all_genes.values():
         g1_id = 0
@@ -86,8 +74,36 @@ if __name__ == '__main__':
                 g2_id += 1
             g1_id += 1
         gene_id += 1
+
+
+def read_genes():
+    global all_genes
+    for gene in marburg_genes:
+        i = 0
+        genes = []
+        for genome in ebolavirus_genomes:
+            indices = pd.read_csv("./Output/" + genome.name + ".csv", header=None)
+            begin_idx = int(indices.loc[i, 1])
+            end_idx = int(indices.loc[i, 2])
+            new_record = SeqIO.SeqRecord(genome.seq[begin_idx: end_idx])
+            new_record.name = genome.name
+            genes.append(new_record)
+            i += 1
+        all_genes[gene.name] = genes
+
+
+def save_edit_matrices():
     i = 0
     for name, gene in all_genes.items():
         edit_matrix = np.array(edit_distance_matrices[i])
         np.savetxt("./Output/edit_matrices/" + name + ".csv", edit_matrix, delimiter=",", fmt='%d')
         i += 1
+
+
+if __name__ == '__main__':
+    read_data()
+    start_aligning()
+
+    # read_genes()
+    # global_align()
+    # save_edit_matrices()
