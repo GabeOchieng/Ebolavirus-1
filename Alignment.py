@@ -12,7 +12,7 @@ sys.setrecursionlimit(10000000)
 
 
 def align_and_find_genes(genome):
-    f = open('./Output/' + genome.name + '.txt', "w")
+    f = open('./Output/' + genome.name + '.csv', "w")
     start = 0
     for gene in marburg_genes:
         len_gene = len(gene.seq)
@@ -23,7 +23,7 @@ def align_and_find_genes(genome):
         final_alignment = alignments[0]  # align1, align2, score, begin, end
         begin_idx = final_alignment[3]
         end_idx = final_alignment[4]
-        f.write(gene.name + " :" + str(start + begin_idx) + " - " + str(start + end_idx) + "\n")
+        f.write(gene.name + "," + str(start + begin_idx) + "," + str(start + end_idx) + "\n")
         start = end - len_gene
     f.close()
 
