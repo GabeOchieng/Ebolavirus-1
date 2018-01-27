@@ -25,16 +25,22 @@ def convert_tu_lower_triangular(data_frame):  # Convert data_frame to a lower tr
     return data_frame
 
 
-def construct_tree(gene_name, type='UPGMA'):  # Construct Tree with specific type (Default = UPGMA)
+def construct_tree(gene_name, names=1, type='UPGMA'):  # Construct Tree with specific type (Default = UPGMA)
+    if names == 1:
+        filename = type + '_' + gene_name
+        names = ['Bundibugyo', 'Reston', 'Sudan', 'TaiForest', 'Zaire']
+    else:
+        filename = type + '_' + gene_name + '_with_Marburg'
+        names = ['Bundibugyo', 'Reston', 'Sudan', 'TaiForest', 'Zaire', 'Marburg']
     edit_matrix = pd.read_csv("./Output/edit_matrices/" + gene_name + ".csv", header=None)  # read edit matrix file
     constructor = DistanceTreeConstructor()  # Create a tree constructor object
     edit_matrix = convert_tu_lower_triangular(edit_matrix)  # Convert Edit Distance matrix to lower triangular
-    distance_matrix = DistanceMatrix(names=['Bundibugyo', 'Reston', 'Sudan', 'TaiForest', 'Zaire'], matrix=edit_matrix)
+    distance_matrix = DistanceMatrix(names=names, matrix=edit_matrix)
     if type == 'NJ':  # Neighbor-Joining Alogrithm
         tree = constructor.nj(distance_matrix)
     else:  # UPGMA Algorithm
         tree = constructor.upgma(distance_matrix)
-    save_tree(tree, type + '_' + gene_name)  # Save Tree into a file
+    save_tree(tree, filename)  # Save Tree into a file
     return tree
 
 
@@ -46,5 +52,5 @@ def save_tree(tree, filename):
 
 
 for gene_name in Alignment.gene_names:  # For all genes
-    NJ_trees.append(construct_tree(gene_name, "NJ"))  # Construct NJ Tree
-    UPGMA_trees.append(construct_tree(gene_name, "UPGMA"))  # Construct UPGMA Tree
+    NJ_trees.append(construct_tree(gene_name, type="NJ"))  # Construct NJ Tree
+    UPGMA_trees.append(construct_tree(gene_name, type="UPGMA"))  # Construct UPGMA Tree

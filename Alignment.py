@@ -80,6 +80,70 @@ def glocal_alignment(genome, gene, match=1, mismatch=-1, gap_penalty=-1):  # Glo
     return j, max_j, score  # returns substring(start, end) indices and score
 
 
+def global_alignment(genome, gene, match=1, mismatch=-1, gap_penalty=-1):
+    # Lengths of sequences
+    len_genome = len(genome) + 1
+    len_gene = len(gene) + 1
+
+    # scores matrix
+    scores = [[0 for i in range(len_genome)] for j in range(len_gene)]
+    # traceback matrix
+    traceback = [[0 for i in range(len_genome)] for j in range(len_gene)]  # to store the trace back path
+
+    for i in range(len_gene):  # Adding penalty for gene --> score[i][0] == i * gap_penalty
+        scores[i][0] = i * gap_penalty
+    for i in range(len_genome):  # Adding penalty for gene --> score[0][i] == i * gap_penalty
+        scores[0][i] = i * gap_penalty
+    for i in range(1, len_gene):  # Dynamic Programming Formula
+        for j in range(1, len_genome):
+            if genome[j - 1] == gene[i - 1]:  # if matched
+                diagonal = scores[i - 1][j - 1] + match
+            else:
+                diagonal = scores[i - 1][j - 1] + mismatch
+
+            left = scores[i][j - 1] + gap_penalty  # gap
+            above = scores[i - 1][j] + gap_penalty  # gap
+            scores[i][j] = max(left, above, diagonal)  # dp formulation
+
+            if scores[i][j] == diagonal:
+                traceback[i][j] = 1  # 1 means trace diagonally
+            elif scores[i][j] == left:
+                traceback[i][j] = 2  # 2 means trace to the left
+            else:
+                traceback[i][j] = 3  # 3 means trace to the top
+
+    genome_alignment, gene_alignment = '', ''  # alignments for printing
+
+    max_j = scores[-1].index(max(scores[-1]))  # stores the number of column which the max number exists in
+    while i >= 0 and j >= 0:
+        if j > max_j:
+            genome_alignment = genome[j - 1] + genome_alignment
+            gene_alignment = '-' + gene_alignment
+            j -= 1
+            continue
+
+        if traceback[i][j] == 1:  # 1 means to trace diagonally
+            genome_alignment = genome[j - 1] + genome_alignment
+            gene_alignment = gene[i - 1] + gene_alignment
+            i -= 1
+            j -= 1
+        elif traceback[i][j] == 2:  # 2 means trace to the left
+            genome_alignment = genome[j - 1] + genome_alignment
+            gene_alignment = '-' + gene_alignment
+            j -= 1
+        else:  # 3 means trace to the top
+            genome_alignment = '-' + genome_alignment
+            gene_alignment = gene[i - 1] + gene_alignment
+            i -= 1
+    score = 0  # Score of alignment
+    for i in range(len(genome_alignment)):  # Calculate Score of alignment
+        if genome_alignment[i] != gene_alignment[i]:
+            score += 1
+    # print(genome_alignment)
+    # print(gene_alignment)
+    return j, max_j, score  # returns substring(start, end) indices and score
+
+
 def align_and_find_genes(genome):  # genome is the sequence of ebolavirus genome
     f = open('./Output/found_genes/' + genome.name + '.csv', "w")
     start = 0
@@ -134,7 +198,7 @@ def global_align():  # Global Alignment For calculating score and edit distance 
                     # alignments = pairwise2.align.globalms(genome1, genome2, 0, -1, -1, -1) # Biopython package
                     # alignment = alignments[0] # first alignment
                     # score = alignment[2] # score of alignment
-                    a, b, score = glocal_alignment(genome1, genome2)  # Global Alignment
+                    a, b, score = global_alignment(genome1, genome2)  # Global Alignment
                     edit_distance = 1 * score  # Calculate score of alignment
                     edit_distance_matrices[gene_id][g1_id][g2_id] = edit_distance
                     edit_distance_matrices[gene_id][g2_id][g1_id] = edit_distance
@@ -143,12 +207,12 @@ def global_align():  # Global Alignment For calculating score and edit distance 
         gene_id += 1
 
 
-def read_genes():  # read all <genome_name>.csv files for accessing genes in genomes
-    global all_genes
+def read_genes(genomes):  # read all <genome_name>.csv files for accessing genes in genomes
+    global all_genes, edit_distance_matrices
     for gene in marburg_genes:  # For every gene (7 genes)
         i = 0
         genes = []
-        for genome in ebolavirus_genomes:  # For every species in ebolavirus
+        for genome in genomes:  # For every species in ebolavirus
             indices = pd.read_csv("./Output/found_genes/" + genome.name + ".csv", header=None)  # read .csv file
             begin_idx = int(indices.loc[i, 1])  # begin index for special gene
             end_idx = int(indices.loc[i, 2])  # end index for special gene
@@ -157,6 +221,9 @@ def read_genes():  # read all <genome_name>.csv files for accessing genes in gen
             genes.append(new_record)  # Append to gene list
             i += 1
         all_genes[gene.name] = genes  # Append genelist to all_genes dictionary
+    genomes_size = len(genomes)
+    genes_size = len(marburg_genes)
+    edit_distance_matrices = [[[0 for i in range(genomes_size)] for j in range(genomes)] for k in range(genes_size)]  # matrix for edit distances
 
 
 def save_edit_matrices():  # Save edit distance matrices into files
@@ -171,6 +238,6 @@ if __name__ == '__main__':
     read_data()
     # start_aligning()
 
-    read_genes()
+    read_genes(ebolavirus_genomes)
     global_align()
     save_edit_matrices()

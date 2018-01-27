@@ -1,7 +1,8 @@
 import sys
 from Bio import Phylo
 from Bio.Phylo.Consensus import *
-import phylogenetic_tree
+from Bio import SeqIO
+import phylogenetic_tree, Alignment
 
 sys.setrecursionlimit(10000000)
 
@@ -14,7 +15,22 @@ sys.setrecursionlimit(10000000)
 
 NJ_trees = phylogenetic_tree.NJ_trees  # All NJ Trees in a list
 UPGMA_trees = phylogenetic_tree.UPGMA_trees  # All UPGMA Trees in a list
-NJ_trees = adam_consensus(NJ_trees)  # Merge NJ Trees using Adam Consensus Algorithm
-UPGMA_trees = adam_consensus(UPGMA_trees)  # Merge UPGMA Trees using Adam Consensus Algorithm
-Phylo.draw(UPGMA_trees)  # Draw merged UPGMA Tree
-Phylo.draw(NJ_trees)  # Draw merged NJ Tree
+NJ_tree = adam_consensus(NJ_trees)  # Merge NJ Trees using Adam Consensus Algorithm
+UPGMA_tree = adam_consensus(UPGMA_trees)  # Merge UPGMA Trees using Adam Consensus Algorithm
+Phylo.draw(UPGMA_tree)  # Draw merged UPGMA Tree
+Phylo.draw(NJ_tree)  # Draw merged NJ Tree
+
+final_tree = adam_consensus([NJ_tree, UPGMA_tree]) # Merge UPGMA && NJ Trees
+Phylo.draw(final_tree) # Draw Final Tree
+
+
+marburg_genome = SeqIO.read("./Data/Marburg_genome.fasta", "fasta")
+all_genomes = Alignment.ebolavirus_genomes + [marburg_genome]
+Alignment.read_genes(all_genomes)
+Alignment.global_align()
+for gene_name in Alignment.gene_names:  # For all genes
+    NJ_trees.append(phylogenetic_tree.construct_tree(gene_name,names=2, type="NJ"))  # Construct NJ Tree
+    UPGMA_trees.append(phylogenetic_tree.construct_tree(gene_name, names=2, type="UPGMA"))  # Construct UPGMA Tree
+
+
+
