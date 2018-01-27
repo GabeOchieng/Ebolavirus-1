@@ -17,14 +17,17 @@ UPGMA_trees = []
 
 
 def merge_all_trees():
+    phylogenetic_tree.construct_trees_for_all_genes_without_marburg()
     NJ_trees = phylogenetic_tree.NJ_trees  # All NJ Trees in a list
     UPGMA_trees = phylogenetic_tree.UPGMA_trees  # All UPGMA Trees in a list
-    NJ_tree = majority_consensus(NJ_trees, 0.4)  # Merge NJ Trees using Majority Consensus Algorithm
-    UPGMA_tree = majority_consensus(UPGMA_trees, 0.4)  # Merge UPGMA Trees using Majority Consensus Algorithm
-    # Phylo.draw_graphviz(UPGMA_tree)  # Draw merged UPGMA Tree --> it is not a good merge
-    # Phylo.draw_graphviz(NJ_tree)  # Draw merged NJ Tree
+    NJ_tree = majority_consensus(NJ_trees,
+                                 0.4)  # Merge NJ Trees using Majority Consensus Algorithm (0.4 is best for practical)
+    UPGMA_tree = majority_consensus(UPGMA_trees,
+                                    0.4)  # Merge UPGMA Trees using Majority Consensus Algorithm (0.4 is best for practical)
+    phylogenetic_tree.save_tree(UPGMA_tree, 'UPGMA_Merged')  # Draw merged UPGMA Tree --> it is not a good merge
+    phylogenetic_tree.save_tree(NJ_tree, 'NJ_Merged')  # Draw merged NJ Tree
 
-    final_tree = majority_consensus([NJ_tree, UPGMA_tree], 0.4)  # Merge UPGMA && NJ Trees (Not Recommended!)
+    # final_tree = majority_consensus([NJ_tree, UPGMA_tree], 0.4)  # Merge UPGMA && NJ Trees (Not Recommended!)
     # Phylo.draw_graphviz(final_tree) # Draw Final Tree
 
 
@@ -38,7 +41,7 @@ def align_all_ebola_genomes():  # All all ebola genomes to each other
         for genome2 in all_genomes:
             if genome1.name != genome2.name and g2_id > g1_id:
                 print('Aligning {0} with {1}'.format(genome1.name, genome2.name))
-                alignments = pairwise2.align.globalxx(genome1, genome2)  # Biopython package
+                alignments = pairwise2.align.globalms(genome1, genome2, 1, -1, -1, 0)  # Biopython package
                 alignment = alignments[0]  # first alignment
                 score = alignment[2]  # score of alignment
                 # a, b, score = Alignment.global_alignment(genome1.seq, genome2.seq) # Global Alignment
@@ -47,9 +50,9 @@ def align_all_ebola_genomes():  # All all ebola genomes to each other
             g2_id += 1
         g1_id += 1
     print("genomes aligned!")
-    Alignment.save_edit_matrix("all_genes", edm)  # Save edit matrix to file
-    phylogenetic_tree.construct_tree("all_genes", algorithm="UPGMA")  # Construct Tree
-    phylogenetic_tree.construct_tree("all_genes", algorithm="NJ")  # Construct Tree
+    Alignment.save_edit_matrix("all_ebola_genomes", edm)  # Save edit matrix to file
+    phylogenetic_tree.construct_tree("all_ebola_genomes", algorithm="UPGMA")  # Construct Tree
+    phylogenetic_tree.construct_tree("all_ebola_genomes", algorithm="NJ")  # Construct Tree
 
 
 def construct_trees_for_all_genes_with_marburg():
@@ -60,4 +63,7 @@ def construct_trees_for_all_genes_with_marburg():
             phylogenetic_tree.construct_tree(gene_name, with_marburg=2, algorithm="UPGMA"))  # Construct UPGMA Tree
 
 
-align_all_ebola_genomes()
+if __name__ == '__main__':
+    merge_all_trees()
+    align_all_ebola_genomes()
+    construct_trees_for_all_genes_with_marburg()

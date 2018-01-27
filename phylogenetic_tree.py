@@ -33,7 +33,7 @@ def construct_tree(gene_name, with_marburg=1, algorithm='UPGMA'):  # Construct T
         filename = algorithm + '_' + gene_name
         names = ['Bundibugyo', 'Reston', 'Sudan', 'TaiForest', 'Zaire']
     else:
-        print('Constructing {0}Tree with All Viruses with Marburg')
+        print('Constructing {0}\'s Tree with All Viruses with Marburg'.format(gene_name))
         filename = algorithm + '_' + gene_name + '_with_Marburg'
         names = ['Bundibugyo', 'Reston', 'Sudan', 'TaiForest', 'Zaire', 'Marburg']
         marburg_genome = SeqIO.read("./Data/Marburg_genome.fasta", "fasta")
@@ -65,3 +65,6 @@ def construct_trees_for_all_genes_without_marburg():
     for gene_name in Alignment.gene_names:  # For all genes
         NJ_trees.append(construct_tree(gene_name, algorithm="NJ"))  # Construct NJ Tree
         UPGMA_trees.append(construct_tree(gene_name, algorithm="UPGMA"))  # Construct UPGMA Tree
+
+if __name__ == '__main__':
+    construct_trees_for_all_genes_without_marburg()

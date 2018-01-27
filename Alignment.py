@@ -5,6 +5,8 @@ import pandas as pd
 import numpy as np
 import os.path
 
+from Bio.pairwise2 import format_alignment
+
 sys.setrecursionlimit(10000000)
 
 """
@@ -158,12 +160,11 @@ def align_and_find_genes(genome):  # genome is the sequence of ebolavirus genome
         gene_str = str(gene.seq)
         genome_str = str(genome.seq)[start: end]
         print('Finding {0} on {1}'.format(gene.name, genome.name))
-        # alignments = pairwise2.align.localmd(genome_str, gene_str, 1, -1, -1, -0.5, 0,
-        #                                      0)  # Using biopython alignment function
-        # final_alignment = alignments[0]  # final_alignment contains --> [align1, align2, score, begin, end]
-        # begin_idx = final_alignment[3]  # 3 is begin
-        # end_idx = final_alignment[4]  # 4 is end
-        begin_idx, end_idx, unused = glocal_alignment(genome_str, gene_str)  # Apply Global-Local Alignment
+        alignments = pairwise2.align.localms(genome_str, gene_str, 1, -1, -1, -0.5)  # Using biopython alignment function
+        final_alignment = alignments[0]  # final_alignment contains --> [align1, align2, score, begin, end]
+        begin_idx = final_alignment[3]  # 3 is begin
+        end_idx = final_alignment[4]  # 4 is end
+        # begin_idx, end_idx, unused = glocal_alignment(genome_str, gene_str)  # Apply Global-Local Alignment
         f.write(gene.name + "," + str(start + begin_idx) + "," + str(start + end_idx) + "\n")  # write to file
         start = end - len_gene  # update start index for the next gene to align
     f.close()
@@ -213,7 +214,15 @@ def global_align(with_marburg=1):  # Global Alignment For calculating score and 
                         alignment = alignments[0]  # first alignment
                         score = alignment[2]  # score of alignment
                         # a, b, score = global_alignment(genome1, genome2)  # Global Alignment
-                        edit_distance = 1 * score  # Calculate score of alignment
+                        edit_distance = 0
+                        i = 0
+                        while i < min(len(alignment[0]), len(alignment[1])):
+                            if alignment[0][i] != alignment[1][i]:
+                                edit_distance += 1
+                            i += 1
+                        edit_distance += max(len(alignment[0]), len(alignment[1])) - min(len(alignment[0]), len(alignment[1]))
+                        print(edit_distance)
+                        # edit_distance = 1 * score  # Calculate score of alignment
                         edit_distance_matrices[gene_id][g1_id][g2_id] = edit_distance
                         edit_distance_matrices[gene_id][g2_id][g1_id] = edit_distance
                 g2_id += 1
@@ -271,6 +280,6 @@ def save_edit_matrix(filename, matrix):  # Save edit distance matrices into file
 
 if __name__ == '__main__':
     read_data()
-    # start_aligning()
+    start_aligning()
     read_genes(None)
     save_edit_matrices()
