@@ -18,6 +18,72 @@ edit_distance_matrices = [[[0 for i in range(5)] for j in range(5)] for k in ran
 gene_names = ['GP', 'L', 'VP24', 'VP30', 'VP35', 'VP40', 'NP']
 
 
+def glocal_alignment(seq1, seq2, match_award=1, mismatch_penalty=-1, gap_penalty=-1):
+    seq1Cnt = len(seq1) + 1
+    seq2Cnt = len(seq2) + 1
+
+    """ ----INITIALISE MATRICES---- """
+    # scores matrix
+    scores = [[0 for i in range(seq1Cnt)] for j in range(seq2Cnt)]
+    # traceback matrix
+    traceback = [[0 for i in range(seq1Cnt)] for j in range(seq2Cnt)]  # to store the trace back path
+
+    for i in range(seq2Cnt):
+        scores[i][0] = i * gap_penalty
+    """ ----FILL DYNAMIC PROGRAMMING TABLE---- """
+    for i in range(1, seq2Cnt):
+        for j in range(1, seq1Cnt):
+            if seq1[j - 1] == seq2[i - 1]:
+                scoreDiag = scores[i - 1][j - 1] + match_award
+            else:
+                scoreDiag = scores[i - 1][j - 1] + mismatch_penalty
+
+            scoreLeft = scores[i][j - 1] + gap_penalty
+            scoreAbove = scores[i - 1][j] + gap_penalty
+            scores[i][j] = max(scoreLeft, scoreAbove, scoreDiag)
+
+            if scores[i][j] == scoreDiag:
+                traceback[i][j] = 1  # 1 means trace diagonally
+            elif scores[i][j] == scoreLeft:
+                traceback[i][j] = 2  # 2 means trace to the left
+            else:
+                traceback[i][j] = 3  # 3 means trace to the top
+
+    """ ----INITIALISE FINAL SEQUENCES---- """
+    f_sequence1, f_sequence2 = '', ''
+
+    """ ----FIND THE MAXIMUM ELEMENT OF THE LAST ROW---"""
+    max_j = scores[-1].index(max(scores[-1]))  # stores the number of column the max number is
+    """ ----COMPUTE THE TRACEBACK ALIGNMENT---- """
+    while i >= 0 and j >= 0:
+        if j > max_j:
+            f_sequence1 = seq1[j - 1] + f_sequence1
+            f_sequence2 = '-' + f_sequence2
+            j -= 1
+            continue
+
+        if traceback[i][j] == 1:  # 1 means to trace diagonally
+            f_sequence1 = seq1[j - 1] + f_sequence1
+            f_sequence2 = seq2[i - 1] + f_sequence2
+            i -= 1
+            j -= 1
+        elif traceback[i][j] == 2:  # 2 means trace to the left
+            f_sequence1 = seq1[j - 1] + f_sequence1
+            f_sequence2 = '-' + f_sequence2
+            j -= 1
+        else:  # 3 means trace to the top
+            f_sequence1 = '-' + f_sequence1
+            f_sequence2 = seq2[i - 1] + f_sequence2
+            i -= 1
+    # i = 0
+    # while f_sequence2[i] == '-':
+    #     i += 1
+    # print(i)
+    print(f_sequence1)
+    print(f_sequence2)
+    return j, max_j
+
+
 def align_and_find_genes(genome):
     f = open('./Output/found_genes/' + genome.name + '.csv', "w")
     start = 0
@@ -25,11 +91,12 @@ def align_and_find_genes(genome):
         len_gene = len(gene.seq)
         end = (start + len_gene * 3) if len(genome) > (start + len_gene * 3) else len(genome)
         gene_str = str(gene.seq)
-        genome_str = str(genome.seq)[start: start + len_gene * 3]
-        alignments = pairwise2.align.localmd(gene_str, genome_str, 1, -1, -1, -1, 0, 0)
-        final_alignment = alignments[0]  # align1, align2, score, begin, end
-        begin_idx = final_alignment[3]
-        end_idx = final_alignment[4]
+        genome_str = str(genome.seq)[start: end]
+        # alignments = pairwise2.align.localmd(gene_str, genome_str, 1, -1, -1, -1, -1, -1)
+        # final_alignment = alignments[0]  # align1, align2, score, begin, end
+        # begin_idx = final_alignment[3]
+        # end_idx = final_alignment[4]
+        begin_idx, end_idx = glocal_alignment(genome_str, gene_str)
         f.write(gene.name + "," + str(start + begin_idx) + "," + str(start + end_idx) + "\n")
         start = end - len_gene
     f.close()

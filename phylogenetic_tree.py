@@ -14,6 +14,8 @@ sys.setrecursionlimit(10000000)
     Created by Mohsen Naghipourfar on 1/26/18.
     Email : mn7697np@gmail.com
 """
+NJ_trees = []
+UPGMA_trees = []
 
 
 def convert_tu_lower_triangular(data_frame):
@@ -33,6 +35,7 @@ def construct_tree(gene_name, type='UPGMA'):
     else:
         tree = constructor.upgma(distance_matrix)
     save_tree(tree, type + '_' + gene_name)
+    return tree
 
 
 def save_tree(tree, filename):
@@ -40,6 +43,7 @@ def save_tree(tree, filename):
     plt.savefig('./Output/images/' + filename + '.png', dpi=100)
     plt.close()
 
+
 for gene_name in Alignment.gene_names:
-    construct_tree(gene_name, "NJ")
-    construct_tree(gene_name, "UPGMA")
+    NJ_trees.append(construct_tree(gene_name, "NJ"))
+    UPGMA_trees.append(construct_tree(gene_name, "UPGMA"))
