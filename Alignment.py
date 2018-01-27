@@ -3,6 +3,7 @@ from Bio import SeqIO
 from Bio import pairwise2
 import pandas as pd
 import numpy as np
+import os.path
 
 sys.setrecursionlimit(10000000)
 
@@ -145,7 +146,10 @@ def global_alignment(genome, gene, match=1, mismatch=-1, gap_penalty=-1):
 
 
 def align_and_find_genes(genome):  # genome is the sequence of ebolavirus genome
-    f = open('./Output/found_genes/' + genome.name + '.csv', "w")
+    filename = './Output/found_genes/' + genome.name + '.csv'
+    if os.path.isfile(filename):
+        return
+    f = open(filename, "w")
     start = 0
     for gene in marburg_genes:  # For each genes found in marburg virus
         len_gene = len(gene.seq)
@@ -153,10 +157,12 @@ def align_and_find_genes(genome):  # genome is the sequence of ebolavirus genome
             genome)  # Just consider a subsequence of genome
         gene_str = str(gene.seq)
         genome_str = str(genome.seq)[start: end]
-        # alignments = pairwise2.align.localmd(gene_str, genome_str, 1, -1, -1, -0.5, 0, 0) # Using biopython alignment function
+        print('Finding {0} on {1}'.format(gene.name, genome.name))
+        # alignments = pairwise2.align.localmd(genome_str, gene_str, 1, -1, -1, -0.5, 0,
+        #                                      0)  # Using biopython alignment function
         # final_alignment = alignments[0]  # final_alignment contains --> [align1, align2, score, begin, end]
-        # begin_idx = final_alignment[3] # 3 is begin
-        # end_idx = final_alignment[4] # 4 is end
+        # begin_idx = final_alignment[3]  # 3 is begin
+        # end_idx = final_alignment[4]  # 4 is end
         begin_idx, end_idx, unused = glocal_alignment(genome_str, gene_str)  # Apply Global-Local Alignment
         f.write(gene.name + "," + str(start + begin_idx) + "," + str(start + end_idx) + "\n")  # write to file
         start = end - len_gene  # update start index for the next gene to align
@@ -184,31 +190,46 @@ def start_aligning():  # Align all genes to all genomes in the given data
         align_and_find_genes(genome)
 
 
-def global_align():  # Global Alignment For calculating score and edit distance matrices
+def global_align(with_marburg=1):  # Global Alignment For calculating score and edit distance matrices
     global edit_distance_matrices
+    if with_marburg == 1:
+        filename = './Output/edit_matrices/GP.csv'
+        if os.path.isfile(filename):
+            return
+    else:
+        filename = './Output/edit_matrices/GP_with_marburg.csv'
+        if os.path.isfile(filename):
+            return
     gene_id = 0
-    for gene in all_genes.values():  # Iterate all genes for all genomes
+    for gene in all_genes.items():  # Iterate all genes for all genomes
         g1_id = 0
-        for genome1 in gene:
+        for genome1 in gene[1]:
             g2_id = 0
-            for genome2 in gene:
+            for genome2 in gene[1]:
                 if genome1.seq != genome2.seq:
-                    if g1_id <= g2_id:
-                        continue
-                    # alignments = pairwise2.align.globalms(genome1, genome2, 0, -1, -1, -1) # Biopython package
-                    # alignment = alignments[0] # first alignment
-                    # score = alignment[2] # score of alignment
-                    a, b, score = global_alignment(genome1, genome2)  # Global Alignment
-                    edit_distance = 1 * score  # Calculate score of alignment
-                    edit_distance_matrices[gene_id][g1_id][g2_id] = edit_distance
-                    edit_distance_matrices[gene_id][g2_id][g1_id] = edit_distance
+                    if g1_id < g2_id:
+                        print('{2}:Aligning {0} with {1}'.format(genome1.name, genome2.name, gene[0]))
+                        alignments = pairwise2.align.globalms(genome1, genome2, 1, -1, -1, -1)  # Biopython package
+                        alignment = alignments[0]  # first alignment
+                        score = alignment[2]  # score of alignment
+                        # a, b, score = global_alignment(genome1, genome2)  # Global Alignment
+                        edit_distance = 1 * score  # Calculate score of alignment
+                        edit_distance_matrices[gene_id][g1_id][g2_id] = edit_distance
+                        edit_distance_matrices[gene_id][g2_id][g1_id] = edit_distance
                 g2_id += 1
             g1_id += 1
         gene_id += 1
+    print('global_align() finished!')
+    save_edit_matrices(with_marburg)
 
 
-def read_genes(genomes):  # read all <genome_name>.csv files for accessing genes in genomes
+def read_genes(marburg_genome=None):  # read all <genome_name>.csv files for accessing genes in genomes
     global all_genes, edit_distance_matrices
+    if marburg_genome:
+        align_and_find_genes(marburg_genome)  # Align all genes in marburg genome
+        genomes = ebolavirus_genomes + [marburg_genome]
+    else:
+        genomes = ebolavirus_genomes
     for gene in marburg_genes:  # For every gene (7 genes)
         i = 0
         genes = []
@@ -221,23 +242,35 @@ def read_genes(genomes):  # read all <genome_name>.csv files for accessing genes
             genes.append(new_record)  # Append to gene list
             i += 1
         all_genes[gene.name] = genes  # Append genelist to all_genes dictionary
-    genomes_size = len(genomes)
-    genes_size = len(marburg_genes)
-    edit_distance_matrices = [[[0 for i in range(genomes_size)] for j in range(genomes)] for k in range(genes_size)]  # matrix for edit distances
+    if marburg_genome:
+        edit_distance_matrices = [[[0 for i in range(6)] for j in range(6)] for k in
+                                  range(7)]  # matrix for edit distances
+    else:
+        edit_distance_matrices = [[[0 for i in range(5)] for j in range(5)] for k in
+                                  range(7)]  # matrix for edit distances
+    if marburg_genome:
+        global_align(with_marburg=2)
+    else:
+        global_align(with_marburg=1)
 
 
-def save_edit_matrices():  # Save edit distance matrices into files
+def save_edit_matrices(with_marburg=1):  # Save edit distance matrices into files
     i = 0
     for name, gene in all_genes.items():
-        edit_matrix = np.array(edit_distance_matrices[i])  # Numpy Package is used here for saving into files
-        np.savetxt("./Output/edit_matrices/" + name + ".csv", edit_matrix, delimiter=",", fmt='%d')
+        if with_marburg == 2:
+            name += '_with_marburg'
+        print('{}.csv has been saved!'.format(name))
+        save_edit_matrix(name, edit_distance_matrices[i])
         i += 1
+
+
+def save_edit_matrix(filename, matrix):  # Save edit distance matrices into files
+    edit_matrix = np.array(matrix)  # Numpy Package is used here for saving into files
+    np.savetxt("./Output/edit_matrices/" + filename + ".csv", edit_matrix, delimiter=",", fmt='%d')
 
 
 if __name__ == '__main__':
     read_data()
     # start_aligning()
-
-    read_genes(ebolavirus_genomes)
-    global_align()
+    read_genes(None)
     save_edit_matrices()
