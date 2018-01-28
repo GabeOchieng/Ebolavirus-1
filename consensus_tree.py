@@ -64,6 +64,6 @@ def construct_trees_for_all_genes_with_marburg():
 
 
 if __name__ == '__main__':
-    merge_all_trees()
-    align_all_ebola_genomes()
-    construct_trees_for_all_genes_with_marburg()
+    merge_all_trees()# Section 3.2 in pdf
+    align_all_ebola_genomes()# Section 3.3 in pdf
+    construct_trees_for_all_genes_with_marburg()# Section 3.4 in pdf
