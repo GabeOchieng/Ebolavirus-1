@@ -5,8 +5,6 @@ import pandas as pd
 import numpy as np
 import os.path
 
-from Bio.pairwise2 import format_alignment
-
 sys.setrecursionlimit(10000000)
 
 """
