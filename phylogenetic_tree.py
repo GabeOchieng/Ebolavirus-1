@@ -67,4 +67,4 @@ def construct_trees_for_all_genes_without_marburg():
         UPGMA_trees.append(construct_tree(gene_name, algorithm="UPGMA"))  # Construct UPGMA Tree
 
 if __name__ == '__main__':
-    construct_trees_for_all_genes_without_marburg()
+    construct_trees_for_all_genes_without_marburg() # Section 3.1 in pdf

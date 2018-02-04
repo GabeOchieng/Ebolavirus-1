@@ -278,6 +278,6 @@ def save_edit_matrix(filename, matrix):  # Save edit distance matrices into file
 
 if __name__ == '__main__':
     read_data()
-    start_aligning()
+    start_aligning()# Section 2.2 in pdf
     read_genes(None)
-    save_edit_matrices()
+    save_edit_matrices()# Section 2.3 in pdf
